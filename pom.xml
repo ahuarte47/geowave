@@ -34,9 +34,9 @@
 	</scm>
 	<properties>
 		<spark.version>2.2.0</spark.version>
-		<geotools.version>18.1</geotools.version>
+		<geotools.version>17-SNAPSHOT</geotools.version>
 		<guava.version>14.0-rc1</guava.version>		<hadoop.env.classifier>hadoop2</hadoop.env.classifier>
-		<geoserver.version>2.12.1</geoserver.version>
+		<geoserver.version>2.11-SNAPSHOT</geoserver.version>
 		<accumulo.version>1.8.1</accumulo.version>
 		<accumulo.api>1.8</accumulo.api>
 		<skipITs>true</skipITs>
@@ -406,6 +406,12 @@
 			<dependency>
 				<groupId>org.geotools</groupId>
 				<artifactId>gt-shapefile</artifactId>
+				<version>${geotools.version}</version>
+				<scope>${geotools.scope}</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.geotools</groupId>
+				<artifactId>gt-csv</artifactId>
 				<version>${geotools.version}</version>
 				<scope>${geotools.scope}</scope>
 			</dependency>
