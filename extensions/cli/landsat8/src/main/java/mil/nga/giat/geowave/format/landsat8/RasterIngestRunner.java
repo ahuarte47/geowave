@@ -22,14 +22,18 @@ import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.TreeMap;
 
+import org.geotools.coverage.CoverageFactoryFinder;
 import org.geotools.coverage.grid.GridCoverage2D;
+import org.geotools.coverage.grid.GridCoverageFactory;
 import org.geotools.coverage.processing.AbstractOperation;
 import org.geotools.coverage.processing.CoverageProcessor;
 import org.geotools.coverage.processing.operation.BandMerge;
 import org.geotools.coverage.processing.operation.BandMerge.TransformList;
+import org.geotools.factory.GeoTools;
 import org.geotools.coverage.processing.operation.Crop;
 import org.geotools.geometry.jts.JTS;
 import org.geotools.referencing.CRS;
+import org.opengis.coverage.grid.GridCoverage;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.AttributeDescriptor;
@@ -607,9 +611,21 @@ public class RasterIngestRunner extends
 
 		public BandData(
 				final String name,
-				final GridCoverage2D coverage,
+				final GridCoverage2D originalCoverage,
 				final GDALGeoTiffReader reader,
 				final File geotiffFile ) {
+		    
+            GridCoverage2D coverage = originalCoverage;
+            
+            // Sets coverage name, it would be useful when searching from a GranuleIndexSource, by FilterId...
+            Map properties = coverage.getProperties();
+            if (properties == null) properties = new HashMap<>();
+            properties.put(RasterDataAdapter.TILE_DATAID_KEY, name);
+            final GridCoverageFactory gcf = CoverageFactoryFinder.getGridCoverageFactory(GeoTools.getDefaultHints());
+            final List<GridCoverage> sourcesL = coverage.getSources();
+            final GridCoverage[] sourcesArray = sourcesL != null ? sourcesL.toArray(new GridCoverage[sourcesL.size()]) : null;
+            coverage = gcf.create(name, coverage.getRenderedImage(), coverage.getGridGeometry(), coverage.getSampleDimensions(), sourcesArray, properties);
+            
 			this.name = name;
 			this.coverage = coverage;
 			this.reader = reader;

@@ -63,6 +63,12 @@ public class GeoServerAddCoverageStoreCommand extends
 	}, required = false, description = "By default, integer values will automatically be scaled to 8-bit and floating point values will not.  This can be overridden setting this value to true or false.", arity = 1)
 	private Boolean scaleTo8Bit = null;
 
+	@Parameter(names = { "-grs", "--granuleIndexStore" }, required = false, description = "<vector store name> to associate the feature attributes of a stored vector layer to coverage layers.  It acts as a Grid of Granules to support dimensions like TIME, ELEVATION and so on.")
+	private String granuleIndexStore = null;
+
+	@Parameter(names = { "-grl", "--granuleIndexLayer" }, required = false, description = "<vector layer name> to associate its feature attributes to coverage layers.  It acts as a Grid of Granules to support dimensions like TIME, ELEVATION and so on.")
+	private String granuleIndexLayer = null;
+
 	@Parameter(description = "<GeoWave store name>")
 	private List<String> parameters = new ArrayList<String>();
 	private String gwStore = null;
@@ -112,7 +118,9 @@ public class GeoServerAddCoverageStoreCommand extends
 				gwStore,
 				equalizeHistogramOverride,
 				interpolationOverride,
-				scaleTo8Bit);
+				scaleTo8Bit,
+				granuleIndexStore,
+				granuleIndexLayer);
 
 		if ((addStoreResponse.getStatus() == Status.OK.getStatusCode())
 				|| (addStoreResponse.getStatus() == Status.CREATED.getStatusCode())) {

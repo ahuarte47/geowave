@@ -79,6 +79,7 @@ import org.opengis.coverage.SampleDimension;
 import org.opengis.coverage.SampleDimensionType;
 import org.opengis.coverage.grid.GridCoverage;
 import org.opengis.coverage.grid.GridEnvelope;
+import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.geometry.Envelope;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
@@ -141,6 +142,10 @@ import mil.nga.giat.geowave.core.store.dimension.NumericDimensionField;
 import mil.nga.giat.geowave.core.store.index.CommonIndexModel;
 import mil.nga.giat.geowave.core.store.index.CommonIndexValue;
 import mil.nga.giat.geowave.core.store.index.PrimaryIndex;
+import mil.nga.giat.geowave.core.store.index.SecondaryIndex;
+import mil.nga.giat.geowave.core.store.index.SecondaryIndexDataAdapter;
+import mil.nga.giat.geowave.core.store.index.SecondaryIndexType;
+import mil.nga.giat.geowave.core.store.index.text.TextIndexStrategy;
 import mil.nga.giat.geowave.core.store.util.IteratorWrapper;
 import mil.nga.giat.geowave.core.store.util.IteratorWrapper.Converter;
 import mil.nga.giat.geowave.mapreduce.HadoopDataAdapter;
@@ -150,10 +155,12 @@ public class RasterDataAdapter implements
 		StatisticsProvider<GridCoverage>,
 		IndexDependentDataAdapter<GridCoverage>,
 		HadoopDataAdapter<GridCoverage, GridCoverageWritable>,
-		RowMergingDataAdapter<GridCoverage, RasterTile<?>>
+		RowMergingDataAdapter<GridCoverage, RasterTile<?>>,
+		SecondaryIndexDataAdapter<GridCoverage>
 {
 	// Moved static initialization to constructor (staticInit)
 
+    public final static String TILE_DATAID_KEY = "TILE_DATAID";
 	public final static String TILE_METADATA_PROPERTY_KEY = "TILE_METADATA";
 	private static boolean classInit = false;
 
@@ -965,6 +972,11 @@ public class RasterDataAdapter implements
 	@Override
 	public ByteArrayId getDataId(
 			final GridCoverage entry ) {
+
+	    final Object dataidObj = getProperties(entry).get(RasterDataAdapter.TILE_DATAID_KEY);
+	    if (dataidObj != null) {
+	        return new ByteArrayId(dataidObj.toString());
+	    }
 		return new ByteArrayId(
 				new byte[] {});
 	}
@@ -979,6 +991,7 @@ public class RasterDataAdapter implements
 			return null;
 		}
 		return getCoverageFromRasterTile(
+		        data.getDataId(),
 				(RasterTile) rasterTile,
 				data.getInsertionPartitionKey(),
 				data.getInsertionSortKey(),
@@ -986,6 +999,7 @@ public class RasterDataAdapter implements
 	}
 
 	public GridCoverage getCoverageFromRasterTile(
+	        final ByteArrayId dataId,
 			final RasterTile rasterTile,
 			final ByteArrayId partitionKey,
 			final ByteArrayId sortKey,
@@ -1030,6 +1044,7 @@ public class RasterDataAdapter implements
 				indexCrs);
 		try {
 			return prepareCoverage(
+			        dataId,
 					rasterTile,
 					tileSize,
 					mapExtent);
@@ -1051,6 +1066,7 @@ public class RasterDataAdapter implements
 	 * @throws IOException
 	 */
 	private GridCoverage2D prepareCoverage(
+	        final ByteArrayId dataId,
 			final RasterTile rasterTile,
 			final int tileSize,
 			final ReferencedEnvelope mapExtent )
@@ -1212,6 +1228,9 @@ public class RasterDataAdapter implements
 			if (metadata != null) {
 				properties.putAll(metadata);
 			}
+            if (dataId != null) {
+                properties.put(TILE_DATAID_KEY, dataId.getString());
+            }
 			if (tileMetadata != null) {
 				properties.put(
 						TILE_METADATA_PROPERTY_KEY,
@@ -1974,6 +1993,7 @@ public class RasterDataAdapter implements
 						writable.getCrs());
 				try {
 					return prepareCoverage(
+					        null,
 							writable.getRasterTile(),
 							tileSize,
 							mapExtent);
@@ -2142,4 +2162,21 @@ public class RasterDataAdapter implements
 			final ByteArrayId statisticsId ) {
 		return visibilityHandler;
 	}
+
+    @Override
+    public List<SecondaryIndex<GridCoverage>> getSupportedSecondaryIndices() {
+        List<SecondaryIndex<GridCoverage>> list = new ArrayList<SecondaryIndex<GridCoverage>>();
+        
+        final List<DataStatistics<GridCoverage>> statistics = new ArrayList<>();
+        final SecondaryIndexType secondaryIndexType = SecondaryIndexType.FULL;
+        final ByteArrayId fieldId = new ByteArrayId("name");
+        
+        SecondaryIndex<GridCoverage> nameIndex = new SecondaryIndex<GridCoverage>(new TextIndexStrategy(),
+                fieldId,
+                statistics,
+                secondaryIndexType);
+        
+        list.add(nameIndex);
+        return list;
+    }
 }

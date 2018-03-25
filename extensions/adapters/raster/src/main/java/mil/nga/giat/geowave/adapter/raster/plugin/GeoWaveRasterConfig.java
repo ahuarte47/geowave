@@ -61,7 +61,11 @@ public class GeoWaveRasterConfig
 		AUTHORIZATION_PROVIDER(
 				"authorizationProvider"),
 		AUTHORIZATION_URL(
-				"authorizationUrl");
+				"authorizationUrl"),
+	    GRANULE_INDEX_STORE(
+	            "granuleIndexStore"),
+	    GRANULE_INDEX_LAYER(
+	            "granuleIndexLayer");
 		private String configName;
 
 		private ConfigParameter(
@@ -90,6 +94,9 @@ public class GeoWaveRasterConfig
 
 	private Integer interpolationOverride = null;
 
+	private String granuleIndexStore = null;
+	private String granuleIndexLayer = null;
+
 	protected GeoWaveRasterConfig() {}
 
 	public static GeoWaveRasterConfig createConfig(
@@ -98,6 +105,8 @@ public class GeoWaveRasterConfig
 		return createConfig(
 				dataStoreConfig,
 				geowaveNamespace,
+				null,
+				null,
 				null,
 				null,
 				null,
@@ -112,11 +121,15 @@ public class GeoWaveRasterConfig
 			final Boolean scaleTo8Bit,
 			final Integer interpolationOverride,
 			final String authorizationProvider,
-			final URL authorizationURL ) {
+			final URL authorizationURL,
+			final String granuleIndexStore,
+			final String granuleIndexLayer ) {
 		final GeoWaveRasterConfig result = new GeoWaveRasterConfig();
 		result.equalizeHistogramOverride = equalizeHistogramOverride;
 		result.interpolationOverride = interpolationOverride;
 		result.scaleTo8Bit = scaleTo8Bit;
+		result.granuleIndexStore = granuleIndexStore;
+		result.granuleIndexLayer = granuleIndexLayer;
 		synchronized (result) {
 			result.storeConfigObj = dataStoreConfig;
 			result.factoryFamily = GeoWaveStoreFinder.findStoreFamily(result.storeConfigObj);
@@ -293,6 +306,9 @@ public class GeoWaveRasterConfig
 				.getConfigName()));
 
 		result.authorizationURL = getAuthorizationURL(params.get(ConfigParameter.AUTHORIZATION_URL.getConfigName()));
+
+		result.granuleIndexStore = params.get(ConfigParameter.GRANULE_INDEX_STORE.getConfigName());
+		result.granuleIndexLayer = params.get(ConfigParameter.GRANULE_INDEX_LAYER.getConfigName());
 	}
 
 	protected AuthorizationFactorySPI getAuthorizationFactory() {
@@ -389,4 +405,26 @@ public class GeoWaveRasterConfig
 		}
 		return equalizeHistogramOverride;
 	}
+
+    public boolean isGranuleIndexStoreSet() {
+        return (granuleIndexStore != null);
+    }
+
+    public String getGranuleIndexStore() {
+        if (!isGranuleIndexStoreSet()) {
+            throw new IllegalStateException("Granule Index Store is not set for this config");
+        }
+        return granuleIndexStore;
+    }
+
+    public boolean isGranuleIndexLayerSet() {
+        return (granuleIndexLayer != null);
+    }
+
+    public String getGranuleIndexLayer() {
+        if (!isGranuleIndexLayerSet()) {
+            throw new IllegalStateException("Granule Index Layer is not set for this config");
+        }
+        return granuleIndexLayer;
+    }
 }

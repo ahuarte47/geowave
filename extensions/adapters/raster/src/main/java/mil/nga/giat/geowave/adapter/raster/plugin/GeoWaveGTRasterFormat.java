@@ -14,7 +14,11 @@ import java.awt.Color;
 import java.io.File;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 
 import org.slf4j.Logger;
@@ -63,13 +67,18 @@ public class GeoWaveGTRasterFormat extends
 
 	public GeoWaveGTRasterFormat() {
 		super();
-		setInfo();
+		setInfo(null);
 	}
+
+    public GeoWaveGTRasterFormat(Collection<GeneralParameterDescriptor> extraDescriptors) {
+        super();
+        setInfo(extraDescriptors);
+    }
 
 	/**
 	 * Sets the metadata information.
 	 */
-	private void setInfo() {
+	private void setInfo(Collection<GeneralParameterDescriptor> extraDescriptors) {
 		final HashMap<String, String> info = new HashMap<String, String>();
 
 		info.put(
@@ -86,18 +95,22 @@ public class GeoWaveGTRasterFormat extends
 				"https://github.com/locationtech/geowave");
 		info.put(
 				"version",
-				"0.9.2");
+				"0.9.7");
 		mInfo = info;
 
 		// reading parameters
-		readParameters = new ParameterGroup(
-				new DefaultParameterDescriptorGroup(
-						mInfo,
-						new GeneralParameterDescriptor[] {
-							READ_GRIDGEOMETRY2D,
-							OUTPUT_TRANSPARENT_COLOR,
-							BACKGROUND_COLOR
-						}));
+		GeneralParameterDescriptor[] descriptors = new GeneralParameterDescriptor[] {
+		    READ_GRIDGEOMETRY2D,
+		    OUTPUT_TRANSPARENT_COLOR,
+		    BACKGROUND_COLOR
+        };
+		if (extraDescriptors != null) {
+		    List<GeneralParameterDescriptor> params = new ArrayList<GeneralParameterDescriptor>();
+		    params.addAll(Arrays.asList(descriptors));
+		    params.addAll(extraDescriptors);
+		    descriptors = params.toArray(new GeneralParameterDescriptor[params.size()]);
+		}
+		readParameters = new ParameterGroup(new DefaultParameterDescriptorGroup(mInfo, descriptors));
 
 		// reading parameters
 		writeParameters = null;
@@ -116,7 +129,7 @@ public class GeoWaveGTRasterFormat extends
 			final Object source,
 			final Hints hints ) {
 		try {
-			return new GeoWaveRasterReader(
+			return new GeoWaveExtendedRasterReader(
 					source,
 					hints);
 		}

@@ -1155,8 +1155,30 @@ public class GeoServerRestClient
 		return resp;
 	}
 
+    /**
+     * Add coverage store to geoserver
+     *
+     * @param workspaceName
+     * @param cvgStoreName
+     * @param gwStoreName
+     * @param equalizeHistogramOverride
+     * @param interpolationOverride
+     * @param scaleTo8Bit
+     * @return
+     */
+    public Response addCoverageStore(
+            final String workspaceName,
+            final String cvgStoreName,
+            final String gwStoreName,
+            final Boolean equalizeHistogramOverride,
+            final String interpolationOverride,
+            final Boolean scaleTo8Bit) {
+        return addCoverageStore(workspaceName, cvgStoreName, gwStoreName, equalizeHistogramOverride, interpolationOverride, scaleTo8Bit, null, null);
+    }
+
 	/**
-	 * Add coverage store to geoserver
+	 * Add coverage to geoserver, with an associated vector layer 
+	 * to support dimensions like TIME, ELEVATION and so on 
 	 *
 	 * @param workspaceName
 	 * @param cvgStoreName
@@ -1164,6 +1186,8 @@ public class GeoServerRestClient
 	 * @param equalizeHistogramOverride
 	 * @param interpolationOverride
 	 * @param scaleTo8Bit
+	 * @param granuleIndexStore
+	 * @param granuleIndexLayer
 	 * @return
 	 */
 	public Response addCoverageStore(
@@ -1172,7 +1196,9 @@ public class GeoServerRestClient
 			final String gwStoreName,
 			final Boolean equalizeHistogramOverride,
 			final String interpolationOverride,
-			final Boolean scaleTo8Bit ) {
+			final Boolean scaleTo8Bit,
+			final String granuleIndexStore,
+			final String granuleIndexLayer) {
 		final DataStorePluginOptions inputStoreOptions = getStorePlugin(gwStoreName);
 
 		if ((cvgStoreName == null) || cvgStoreName.isEmpty()) {
@@ -1199,7 +1225,9 @@ public class GeoServerRestClient
 				storeConfigMap,
 				equalizeHistogramOverride,
 				interpolationOverride,
-				scaleTo8Bit);
+				scaleTo8Bit,
+				granuleIndexStore,
+				granuleIndexLayer);
 
 		System.out.println("Add coverage store - xml params:\n" + cvgStoreXml);
 
@@ -1469,7 +1497,9 @@ public class GeoServerRestClient
 			final Map<String, String> geowaveStoreConfig,
 			final Boolean equalizeHistogramOverride,
 			final String interpolationOverride,
-			final Boolean scaleTo8Bit ) {
+			final Boolean scaleTo8Bit,
+			final String granuleIndexStore,
+			final String granuleIndexLayer ) {
 		String coverageXml = null;
 
 		final String workspace = geowaveStoreConfig.get(GEOSERVER_WORKSPACE);
@@ -1517,7 +1547,9 @@ public class GeoServerRestClient
 					geowaveStoreConfig,
 					equalizeHistogramOverride,
 					interpolationOverride,
-					scaleTo8Bit);
+					scaleTo8Bit,
+					granuleIndexStore,
+					granuleIndexLayer);
 
 			final Element urlEl = xmlDoc.createElement("url");
 			urlEl.appendChild(xmlDoc.createTextNode(storeConfigUrl));
@@ -1583,7 +1615,9 @@ public class GeoServerRestClient
 			final Map<String, String> geowaveStoreConfig,
 			final Boolean equalizeHistogramOverride,
 			final String interpolationOverride,
-			final Boolean scaleTo8Bit ) {
+			final Boolean scaleTo8Bit,
+			final String granuleIndexStore,
+			final String granuleIndexLayer ) {
 		// Retrieve store config
 		final String user = geowaveStoreConfig.get("user");
 		final String pass = geowaveStoreConfig.get("password");
@@ -1615,6 +1649,14 @@ public class GeoServerRestClient
 			buf.append(";scaleTo8Bit=");
 			buf.append(scaleTo8Bit);
 		}
+        if (granuleIndexStore != null) {
+            buf.append(";granuleIndexStore=");
+            buf.append(granuleIndexStore);
+        }
+        if (granuleIndexLayer != null) {
+            buf.append(";granuleIndexLayer=");
+            buf.append(granuleIndexLayer);
+        }
 
 		return buf.toString();
 	}

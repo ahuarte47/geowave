@@ -234,6 +234,10 @@ public class GeoWaveRasterReader extends
 				null);
 	}
 
+	protected GeoWaveRasterConfig getConfig() {
+	    return this.config;
+	}
+
 	protected CoordinateReferenceSystem getDefaultCrs() {
 		if (defaultCrs != null) {
 			return defaultCrs;
@@ -549,6 +553,7 @@ public class GeoWaveRasterReader extends
 
 		final GridCoverage2D coverage = renderGridCoverage(
 				coverageName,
+				params,
 				dim,
 				requestedEnvelope,
 				backgroundColor,
@@ -558,8 +563,19 @@ public class GeoWaveRasterReader extends
 		return coverage;
 	}
 
-	public GridCoverage2D renderGridCoverage(
+    public GridCoverage2D renderGridCoverage(
+            final String coverageName,
+            final Rectangle dim,
+            final GeneralEnvelope generalEnvelope,
+            Color backgroundColor,
+            Color outputTransparentColor,
+            final Interpolation interpolation )
+            throws IOException {
+        return renderGridCoverage(coverageName, null, dim, generalEnvelope, backgroundColor, outputTransparentColor, interpolation);
+    }
+	private GridCoverage2D renderGridCoverage(
 			final String coverageName,
+			final GeneralParameterValue[] params,
 			final Rectangle dim,
 			final GeneralEnvelope generalEnvelope,
 			Color backgroundColor,
@@ -583,6 +599,7 @@ public class GeoWaveRasterReader extends
 		// /////////////////////////////////////////////////////////////////////
 		final GridCoverage2D coverage = loadTiles(
 				coverageName,
+				params,
 				backgroundColor,
 				outputTransparentColor,
 				interpolation,
@@ -605,6 +622,7 @@ public class GeoWaveRasterReader extends
 	 */
 	private GridCoverage2D loadTiles(
 			final String coverageName,
+			final GeneralParameterValue[] params,
 			final Color backgroundColor,
 			final Color outputTransparentColor,
 			Interpolation interpolation,
@@ -718,7 +736,8 @@ public class GeoWaveRasterReader extends
 				state.getRequestEnvelopeXformed(),
 				resolutionLevels[imageChoice.intValue()][0],
 				resolutionLevels[imageChoice.intValue()][1],
-				adapter)) {
+				adapter,
+				params)) {
 			// allow the config to override the WMS request
 			if (config.isInterpolationOverrideSet()) {
 				interpolation = config.getInterpolationOverride();
@@ -788,10 +807,12 @@ public class GeoWaveRasterReader extends
 			final GeneralEnvelope requestEnvelope,
 			final double levelResX,
 			final double levelResY,
-			final RasterDataAdapter adapter )
+			final RasterDataAdapter adapter,
+			final GeneralParameterValue[] params )
 			throws IOException {
 		return queryForTiles(
 				adapter,
+				params,
 				new IndexOnlySpatialQuery(
 						new GeometryFactory().toGeometry(new Envelope(
 								requestEnvelope.getMinimum(0),
@@ -806,6 +827,7 @@ public class GeoWaveRasterReader extends
 
 	private CloseableIterator<GridCoverage> queryForTiles(
 			final RasterDataAdapter adapter,
+			final GeneralParameterValue[] params,
 			final Query query,
 			final double[] targetResolutionPerDimension ) {
 		final AdapterToIndexMapping adapterIndexMapping = geowaveAdapterIndexMappingStore.getIndicesForAdapter(adapter
@@ -862,7 +884,7 @@ public class GeoWaveRasterReader extends
 						// dimension, which is the highest precision)
 						targetIndexStrategy = sortedStrategies.firstEntry().getValue();
 					}
-					return geowaveDataStore.query(
+					return wrap(geowaveDataStore.query(
 							new QueryOptions(
 									adapter,
 									new CustomIdIndex(
@@ -880,15 +902,15 @@ public class GeoWaveRasterReader extends
 									authorizationSPI.getAuthorizations()),
 							// same as the orginal so that we
 							// are querying the correct table
-							query);
+							query), params);
 				}
 				else {
-					return geowaveDataStore.query(
+					return wrap(geowaveDataStore.query(
 							new QueryOptions(
 									adapter,
 									rasterIndex,
 									authorizationSPI.getAuthorizations()),
-							query);
+							query), params);
 				}
 			}
 		}
@@ -915,6 +937,16 @@ public class GeoWaveRasterReader extends
 				result.getRenderedImage(),
 				result.getEnvelope());
 
+	}
+	
+	/**
+	 * Wraps the original iterator with some extra logic (e.g. filter by TIME dimension)
+	 * @param iterator
+	 * @param params
+	 * @return
+	 */
+	protected CloseableIterator<GridCoverage> wrap(final CloseableIterator<GridCoverage> iterator, final GeneralParameterValue[] params) {
+	    return iterator;
 	}
 
 	/**

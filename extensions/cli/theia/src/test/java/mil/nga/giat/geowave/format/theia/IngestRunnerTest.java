@@ -15,15 +15,26 @@ import static org.junit.Assert.*;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.lang.SystemUtils;
+import org.geotools.coverage.grid.GridCoverage2D;
+import org.geotools.factory.CommonFactoryFinder;
+import org.geotools.filter.identity.FeatureIdImpl;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.opengis.filter.Filter;
+import org.opengis.filter.FilterFactory;
+import org.opengis.filter.identity.FeatureId;
 
 import com.beust.jcommander.ParameterException;
 
 import it.geosolutions.jaiext.JAIExt;
+import mil.nga.giat.geowave.adapter.raster.FitToIndexGridCoverage;
 import mil.nga.giat.geowave.adapter.raster.plugin.gdal.InstallGdal;
+import mil.nga.giat.geowave.adapter.vector.query.cql.CQLQuery;
 import mil.nga.giat.geowave.adapter.vector.utils.DateUtilities;
 import mil.nga.giat.geowave.core.cli.api.OperationParams;
 import mil.nga.giat.geowave.core.cli.operations.config.options.ConfigOptions;
@@ -124,7 +135,52 @@ public class IngestRunnerTest
 					"Store is not empty",
 					results.hasNext());
 		}
-
+		
+		final FilterFactory ff = CommonFactoryFinder.getFilterFactory(null);
+        Set<FeatureId> featureIds = new HashSet<FeatureId>();
+        
+        try (CloseableIterator<Object> results = getStore(params).query(new QueryOptions(), new EverythingQuery())) {
+            while (results.hasNext()) {
+                Object entry = results.next();
+                
+                GridCoverage2D coverage = null;
+                
+                if (entry instanceof FitToIndexGridCoverage) {
+                    entry = ((FitToIndexGridCoverage) entry).getOriginalCoverage();
+                }
+                if (entry instanceof GridCoverage2D) {
+                    coverage = (GridCoverage2D)entry;
+                }
+                
+                if (coverage != null) {
+                    String coverageName = coverage.getName().toString();
+                    Map properties = coverage.getProperties();
+                    
+                    System.out.println("# Coverage: " + coverageName);
+                    for (Object key : properties.keySet()) {
+                        Object value = properties.get(key);
+                        System.out.println(" + key=" + key.toString() + " value=" + (value!=null ? value.toString() : "<null>"));
+                    }
+                    System.out.println("");
+                    
+                    if (featureIds.size() == 0) {
+                        featureIds.add(new FeatureIdImpl(coverageName));
+                    }
+                }
+            }
+        }
+                
+        final Filter filter = ff.id(featureIds);
+        final CQLQuery query = new CQLQuery(null, filter, null);
+        
+        try (CloseableIterator<Object> results = getStore(params).query(new QueryOptions(), query)) {
+            while (results.hasNext()) {
+                Object entry = results.next();
+                
+                
+            }
+        }
+        
 		// Not sure what assertions can be made about the indexes.
 	}
 

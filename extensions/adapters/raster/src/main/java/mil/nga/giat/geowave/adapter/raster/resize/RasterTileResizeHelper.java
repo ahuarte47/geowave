@@ -112,6 +112,7 @@ public class RasterTileResizeHelper
 		if (needsMerge) {
 			final Pair<byte[], byte[]> pair = key.getPartitionAndSortKey(index);
 			mergedCoverage = newAdapter.getCoverageFromRasterTile(
+			        null,
 					mergedTile,
 					pair == null ? null : new ByteArrayId(
 							pair.getLeft()),
